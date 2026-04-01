@@ -19,7 +19,8 @@ import {
   ReactWidget,
   SidePanel,
   Spinner,
-  ToolbarButton
+  ToolbarButton,
+  deleteIcon
 } from '@jupyterlab/ui-components';
 import { Debouncer } from '@lumino/polling';
 import { ISignal, Signal } from '@lumino/signaling';
@@ -70,6 +71,7 @@ export class MultiChatPanel extends SidePanel {
     this._createModel = options.createModel;
     this._openInMain = options.openInMain;
     this._renameChat = options.renameChat;
+    this._deleteChat = options.deleteChat;
 
     if (this._createModel) {
       // Add chat button calls the createChat callback
@@ -163,6 +165,7 @@ export class MultiChatPanel extends SidePanel {
       widget,
       openInMain: this._openInMain,
       renameChat: this._renameChat,
+      deleteChat: this._deleteChat,
       displayName
     });
 
@@ -282,6 +285,7 @@ export class MultiChatPanel extends SidePanel {
   private _getChatNames?: () => Promise<{ [name: string]: string }>;
   private _openInMain?: (name: string) => Promise<boolean>;
   private _renameChat?: (oldName: string, newName: string) => Promise<boolean>;
+  private _deleteChat?: (path: string) => Promise<boolean>;
 
   private _openChatWidget?: ReactWidget;
 }
@@ -327,6 +331,13 @@ export namespace MultiChatPanel {
      * @returns - a boolean, whether the chat has been renamed or not.
      */
     renameChat?: (oldName: string, newName: string) => Promise<boolean>;
+    /**
+     * An optional callback to delete a chat.
+     *
+     * @param path - the path of the chat to delete.
+     * @returns - a boolean, whether the chat has been deleted or not.
+     */
+    deleteChat?: (path: string) => Promise<boolean>;
   }
   /**
    * The options for the add chat method.
@@ -400,6 +411,22 @@ export class ChatSection extends PanelWithToolbar {
         }
       });
       this.toolbar.addItem('rename', renameButton);
+    }
+
+    if (options.deleteChat) {
+      const deleteButton = new ToolbarButton({
+        icon: deleteIcon,
+        iconLabel: 'Delete chat',
+        className: 'jp-mod-styled',
+        onClick: async () => {
+          const path = this.model.name;
+          if (await options.deleteChat?.(path)) {
+            this.model.dispose();
+            this.dispose();
+          }
+        }
+      });
+      this.toolbar.addItem('delete', deleteButton);
     }
 
     if (options.openInMain) {
@@ -532,6 +559,13 @@ export namespace ChatSection {
      * @returns - a boolean, whether the chat has been renamed or not.
      */
     renameChat?: (oldName: string, newName: string) => Promise<boolean>;
+    /**
+     * An optional callback to delete a chat.
+     *
+     * @param path - the path of the chat to delete.
+     * @returns - a boolean, whether the chat has been deleted or not.
+     */
+    deleteChat?: (path: string) => Promise<boolean>;
     /**
      * The name to display in the section title.
      */
