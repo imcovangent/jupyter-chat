@@ -452,20 +452,24 @@ const chatCommands: JupyterFrontEndPlugin<void> = {
         let name: string | null = (args.name as string) ?? null;
         let filepath = '';
         if (!name) {
-          name = (
-            await InputDialog.getText({
-              label: 'Name',
-              placeholder: 'untitled',
-              title: 'Create a new chat'
-            })
-          ).value;
+          const now = new Date();
+          const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          const monthNames = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+          ];
+          const day = dayNames[now.getDay()];
+          const month = monthNames[now.getMonth()];
+          const date = now.getDate();
+          const year = now.getFullYear();
+          const hours = String(now.getHours()).padStart(2, '0');
+          const minutes = String(now.getMinutes()).padStart(2, '0');
+          const seconds = String(now.getSeconds()).padStart(2, '0');
+          name = `Chat ${day} ${month} ${date} ${year}, ${hours}:${minutes}:${seconds}`;
         }
-        // no-op if the dialog has been cancelled.
-        // Fill the filepath if the dialog has been validated with content,
+        // Fill the filepath if a name has been provided,
         // otherwise create a new untitled chat (empty filepath).
-        if (name === null) {
-          return;
-        } else if (name) {
+        if (name) {
           if (name.endsWith(chatFileType.extensions[0])) {
             filepath = name;
           } else {
@@ -686,6 +690,26 @@ const chatCommands: JupyterFrontEndPlugin<void> = {
         console.error('The command to open a chat is not initialized\n', e)
       );
 
+    // Command to delete a chat
+    commands.addCommand(CommandIDs.deleteChat, {
+      label: 'Delete chat',
+      execute: async (args: any): Promise<boolean> => {
+        const path = args.path as string;
+        if (!path) {
+          showErrorMessage('Error deleting chat', 'Missing path');
+          return false;
+        }
+        try {
+          await app.serviceManager.contents.delete(path);
+          return true;
+        } catch (err) {
+          console.error('Error deleting chat', err);
+          showErrorMessage('Error deleting chat', `${err}`);
+        }
+        return false;
+      }
+    });
+
     // Command to rename a chat
     commands.addCommand(CommandIDs.renameChat, {
       label: 'Rename chat',
@@ -844,6 +868,11 @@ const chatPanel: JupyterFrontEndPlugin<MultiChatPanel> = {
         return commands.execute(CommandIDs.renameChat, {
           oldPath,
           newPath
+        }) as Promise<boolean>;
+      },
+      deleteChat: (path) => {
+        return commands.execute(CommandIDs.deleteChat, {
+          path
         }) as Promise<boolean>;
       },
       chatCommandRegistry,
