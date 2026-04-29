@@ -87,10 +87,11 @@ export function AttachCodeCellButton(
       // Append to current message value with a newline if there's existing content
       const currentValue = model.value;
       model.value = currentValue
-        ? `${currentValue}\n\n${formattedCode}`
-        : formattedCode;
+        ? `${currentValue}\n\n${formattedCode}\n`
+        : `${formattedCode}\n`;
 
-      // Focus the input after inserting
+      // Place cursor at the end (on the new blank line) and focus
+      model.cursorIndex = model.value.length;
       model.focus();
     }
   };

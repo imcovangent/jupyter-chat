@@ -76,6 +76,19 @@ export function ChatInput(props: ChatInput.IProps): JSX.Element {
     const focusInputElement = () => {
       if (inputRef.current) {
         inputRef.current.focus();
+        if (model.cursorIndex !== null) {
+          // Defer until after React has committed the new value to the DOM,
+          // so scrollHeight reflects the updated content.
+          requestAnimationFrame(() => {
+            if (inputRef.current && model.cursorIndex !== null) {
+              inputRef.current.setSelectionRange(
+                model.cursorIndex,
+                model.cursorIndex
+              );
+              inputRef.current.scrollTop = inputRef.current.scrollHeight;
+            }
+          });
+        }
       }
     };
     model.focusInputSignal?.connect(focusInputElement);
