@@ -9,6 +9,7 @@
  */
 
 import { InputDialog, IThemeManager } from '@jupyterlab/apputils';
+import { PathExt } from '@jupyterlab/coreutils';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import {
   addIcon,
@@ -111,6 +112,12 @@ export class MultiChatPanel extends SidePanel {
    */
   get sections(): ChatSection[] {
     return this.widgets as ChatSection[];
+  }
+
+  protected onAfterShow(): void {
+    if (this._createModel && this.sections.length === 0) {
+      this._createModel().then(args => this.addChat(args)).catch(console.error);
+    }
   }
 
   /**
@@ -394,19 +401,26 @@ export class ChatSection extends PanelWithToolbar {
           const oldName = this.model.name ?? 'Chat';
           const result = await InputDialog.getText({
             title: 'Rename Chat',
-            text: this.model.name,
+            text: PathExt.basename(oldName).replace(/\.chat$/, ''),
             placeholder: 'new-name'
           });
           if (!result.button.accept) {
             return; // user cancelled
           }
-          const newName = result.value;
-          if (this.model && newName && newName !== oldName) {
-            if (await options.renameChat?.(oldName, newName)) {
-              this.model.name = newName;
-              this._displayName = newName;
-              this._updateTitle();
-            }
+          const newBaseName = result.value;
+          if (!this.model || !newBaseName) {
+            return;
+          }
+          // Reconstruct the full path preserving the original directory and extension
+          const dir = PathExt.dirname(oldName);
+          const ext = oldName.endsWith('.chat') ? '.chat' : '';
+          const newFullName = dir
+            ? PathExt.join(dir, newBaseName + ext)
+            : newBaseName + ext;
+          if (newFullName !== oldName && await options.renameChat?.(oldName, newFullName)) {
+            this.model.name = newFullName;
+            this._displayName = newBaseName;
+            this._updateTitle();
           }
         }
       });

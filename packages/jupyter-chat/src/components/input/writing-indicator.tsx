@@ -3,7 +3,7 @@
  * Distributed under the terms of the Modified BSD License.
  */
 
-import { Box, Typography } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import React from 'react';
 
 import { IChatModel } from '../../model';
@@ -48,35 +48,36 @@ function formatWritersText(writers: IChatModel.IWriter[]): string {
 }
 
 /**
- * The input writing indicator component, displaying typing status in the chat input area.
+ * The input writing indicator component, displaying typing status in the chat messages area.
  */
 export function InputWritingIndicator(
   props: IInputWritingIndicatorProps
 ): JSX.Element {
   const { writers } = props;
 
-  // Always render the container to reserve space, even if no writers
-  const writersText = writers.length > 0 ? formatWritersText(writers) : '';
+  const writersText = formatWritersText(writers);
 
   return (
     <Box
       className={WRITERS_ELEMENT_CLASSNAME}
       sx={{
-        minHeight: '16px'
+        minHeight: '16px',
+        display: writers.length > 0 ? 'flex' : 'none',
+        alignItems: 'center',
+        gap: '4px'
       }}
     >
+      <CircularProgress size={10} thickness={5} />
       <Typography
         variant="caption"
         sx={{
           color: 'var(--jp-ui-font-color2)',
-          display: 'block',
           fontSize: '10px',
           fontFamily: 'var(--jp-ui-font-family)',
-          lineHeight: '16px',
-          visibility: writers.length > 0 ? 'visible' : 'hidden'
+          lineHeight: '16px'
         }}
       >
-        {writersText || '\u00A0'}
+        {writersText}
       </Typography>
     </Box>
   );

@@ -115,3 +115,14 @@
   padding: 2px 0;
   font-weight: bold;
 }
+
+.jp-chat-open {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: fit-content;
+  overflow: hidden;
+}
+
+.jp-chat-open select {
+  width: 100%;
+}

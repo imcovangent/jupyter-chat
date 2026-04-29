@@ -743,6 +743,12 @@ const chatCommands: JupyterFrontEndPlugin<void> = {
           newPath = `${newPath}${chatFileType.extensions[0]}`;
         }
 
+        // Keep the file in its original directory
+        const dir = PathExt.dirname(oldPath);
+        if (dir) {
+          newPath = PathExt.join(dir, PathExt.basename(newPath));
+        }
+
         try {
           await app.serviceManager.contents.rename(oldPath, newPath);
           return true;

@@ -35,6 +35,7 @@ export function ChatBody(props: Chat.IChatBodyProps): JSX.Element {
   }
   // const horizontalPadding = props.area === 'main' ? 8 : 4;
   const horizontalPadding = 4;
+  const bottomPadding = 2;
 
   return (
     <AttachmentOpenerContext.Provider value={props.attachmentOpenerRegistry}>
@@ -52,7 +53,7 @@ export function ChatBody(props: Chat.IChatBodyProps): JSX.Element {
           paddingLeft: horizontalPadding,
           paddingRight: horizontalPadding,
           paddingTop: 0,
-          paddingBottom: 0
+          paddingBottom: bottomPadding,
         }}
         model={model.input}
         chatCommandRegistry={props.chatCommandRegistry}

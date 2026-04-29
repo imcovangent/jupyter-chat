@@ -24,7 +24,6 @@ import { IInputModel, InputModel } from '../../input-model';
 import { IChatCommandRegistry } from '../../registers';
 import { IAttachment, ChatArea } from '../../types';
 import { IChatModel } from '../../model';
-import { InputWritingIndicator } from './writing-indicator';
 
 const INPUT_BOX_CLASS = 'jp-chat-input-container';
 const INPUT_TEXTFIELD_CLASS = 'jp-chat-input-textfield';
@@ -47,7 +46,6 @@ export function ChatInput(props: ChatInput.IProps): JSX.Element {
     InputToolbarRegistry.IToolbarItem[]
   >([]);
   const [isFocused, setIsFocused] = useState<boolean>(false);
-  const [writers, setWriters] = useState<IChatModel.IWriter[]>([]);
 
   /**
    * Auto-focus the input when the component is first mounted.
@@ -78,6 +76,19 @@ export function ChatInput(props: ChatInput.IProps): JSX.Element {
     const focusInputElement = () => {
       if (inputRef.current) {
         inputRef.current.focus();
+        if (model.cursorIndex !== null) {
+          // Defer until after React has committed the new value to the DOM,
+          // so scrollHeight reflects the updated content.
+          requestAnimationFrame(() => {
+            if (inputRef.current && model.cursorIndex !== null) {
+              inputRef.current.setSelectionRange(
+                model.cursorIndex,
+                model.cursorIndex
+              );
+              inputRef.current.scrollTop = inputRef.current.scrollHeight;
+            }
+          });
+        }
       }
     };
     model.focusInputSignal?.connect(focusInputElement);
@@ -109,30 +120,6 @@ export function ChatInput(props: ChatInput.IProps): JSX.Element {
       toolbarRegistry.itemsChanged.disconnect(updateToolbar);
     };
   }, [toolbarRegistry]);
-
-  /**
-   * Handle the changes in the writers list.
-   */
-  useEffect(() => {
-    if (!props.chatModel) {
-      return;
-    }
-
-    const updateWriters = (_: IChatModel, writers: IChatModel.IWriter[]) => {
-      // Show all writers for now - AI generating responses will have messageID
-      setWriters(writers);
-    };
-
-    // Set initial writers state
-    const initialWriters = props.chatModel.writers;
-    setWriters(initialWriters);
-
-    props.chatModel.writersChanged?.connect(updateWriters);
-
-    return () => {
-      props.chatModel?.writersChanged?.disconnect(updateWriters);
-    };
-  }, [props.chatModel]);
 
   const inputExists = !!input.trim();
 
@@ -342,7 +329,6 @@ export function ChatInput(props: ChatInput.IProps): JSX.Element {
           ))}
         </Box>
       </Box>
-      <InputWritingIndicator writers={writers} />
     </Box>
   );
 }
