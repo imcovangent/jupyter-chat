@@ -114,6 +114,12 @@ export class MultiChatPanel extends SidePanel {
     return this.widgets as ChatSection[];
   }
 
+  protected onAfterShow(): void {
+    if (this._createModel && this.sections.length === 0) {
+      this._createModel().then(args => this.addChat(args)).catch(console.error);
+    }
+  }
+
   /**
    * A signal emitting when a section is added to the panel.
    */
