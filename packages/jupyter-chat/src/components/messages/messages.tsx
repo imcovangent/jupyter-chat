@@ -15,6 +15,7 @@ import { ChatMessage } from './message';
 import { Navigation } from './navigation';
 import { WelcomeMessage } from './welcome';
 import { IInputToolbarRegistry } from '../input';
+import { InputWritingIndicator } from '../input/writing-indicator';
 import { ScrollContainer } from '../scroll-container';
 import { IChatCommandRegistry, IMessageFooterRegistry } from '../../registers';
 import { IChatModel } from '../../model';
@@ -64,6 +65,9 @@ export type BaseMessageProps = {
 export function ChatMessages(props: BaseMessageProps): JSX.Element {
   const { model } = props;
   const [messages, setMessages] = useState<IChatMessage[]>(model.messages);
+  const [writers, setWriters] = useState<IChatModel.IWriter[]>(
+    model.writers ?? []
+  );
   const refMsgBox = useRef<HTMLDivElement>(null);
   const [allRendered, setAllRendered] = useState<boolean>(false);
 
@@ -100,6 +104,21 @@ export function ChatMessages(props: BaseMessageProps): JSX.Element {
 
     return function cleanup() {
       model.messagesUpdated.disconnect(handleChatEvents);
+    };
+  }, [model]);
+
+  /**
+   * Effect: listen to writers changes.
+   */
+  useEffect(() => {
+    const updateWriters = (_: IChatModel, w: IChatModel.IWriter[]) => {
+      setWriters(w);
+    };
+
+    model.writersChanged?.connect(updateWriters);
+
+    return () => {
+      model.writersChanged?.disconnect(updateWriters);
     };
   }, [model]);
 
@@ -232,8 +251,10 @@ export function ChatMessages(props: BaseMessageProps): JSX.Element {
                     />
                   )}
                 </Box>
+
               );
             })}
+            <InputWritingIndicator writers={writers} />
         </Box>
       </ScrollContainer>
       <Navigation {...props} refMsgBox={refMsgBox} allRendered={allRendered} />
