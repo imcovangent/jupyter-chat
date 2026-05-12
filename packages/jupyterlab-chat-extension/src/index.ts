@@ -662,7 +662,12 @@ const chatCommands: JupyterFrontEndPlugin<void> = {
                 return true;
               }
 
-              const addChatArgs = await createChatModel(app, drive, filepath);
+              const addChatArgs = await createChatModel(
+                app,
+                drive,
+                filepath,
+                factory.widgetConfig.config.defaultDirectory
+              );
 
               // Add a chat widget to the side panel.
               chatPanel.addChat(addChatArgs);

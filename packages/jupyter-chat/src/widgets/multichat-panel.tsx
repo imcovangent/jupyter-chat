@@ -115,7 +115,53 @@ export class MultiChatPanel extends SidePanel {
   }
 
   protected onAfterShow(): void {
-    if (this._createModel && this.sections.length === 0) {
+    if (!this._createModel) return;
+
+    // If sections are already open, expand the lowest (last) one
+    if (this.sections.length > 0) {
+      this._expandChat(this.sections.length - 1);
+      return;
+    }
+
+    // If the panel previously had sections that were all closed by the user,
+    // open a fresh new chat rather than re-opening an existing one.
+    if (this._hadSections) {
+      this._createModel().then(args => this.addChat(args)).catch(console.error);
+      return;
+    }
+
+    // No sections have ever been shown — check for available chats before
+    // creating a new one. This prevents spurious chat creation when the layout
+    // restorer hasn't finished yet or when a chat already exists in the default
+    // directory.
+    if (this._getChatNames) {
+      this._getChatNames()
+        .then(names => {
+          // Re-check: sections may have appeared while getChatNames was running
+          if (this.sections.length > 0) {
+            this._expandChat(this.sections.length - 1);
+            return;
+          }
+          const paths = Object.values(names);
+          if (paths.length > 0) {
+            // Open the last available chat instead of creating a new one
+            this._createModel!(paths[paths.length - 1])
+              .then(args => this.addChat(args))
+              .catch(console.error);
+          } else {
+            this._createModel!()
+              .then(args => this.addChat(args))
+              .catch(console.error);
+          }
+        })
+        .catch(() => {
+          if (this.sections.length === 0) {
+            this._createModel!()
+              .then(args => this.addChat(args))
+              .catch(console.error);
+          }
+        });
+    } else {
       this._createModel().then(args => this.addChat(args)).catch(console.error);
     }
   }
@@ -178,6 +224,7 @@ export class MultiChatPanel extends SidePanel {
 
     this.addWidget(section);
     content.expand(this.widgets.length - 1);
+    this._hadSections = true;
 
     this._sectionAdded.emit(section);
     return widget;
@@ -277,6 +324,7 @@ export class MultiChatPanel extends SidePanel {
     this
   );
   private _sectionAdded = new Signal<MultiChatPanel, ChatSection>(this);
+  private _hadSections = false;
   private _rmRegistry: IRenderMimeRegistry;
   private _themeManager?: IThemeManager | null;
   private _chatCommandRegistry?: IChatCommandRegistry;
