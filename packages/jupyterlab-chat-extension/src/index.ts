@@ -978,8 +978,16 @@ const chatPanel: JupyterFrontEndPlugin<MultiChatPanel> = {
           );
           return;
         }
-        // Remove potential drive prefix
-        const filepath = widget.context.path.split(':').pop();
+        // Strip a drive prefix if present (e.g. "RTC:path/file.chat").
+        // Drive names are identifiers: a letter followed by word chars/hyphens.
+        // This avoids breaking filenames that contain colons
+        // (e.g. "Chat Thu May 12 2026, 14:30:22.chat").
+        const driveMatch = widget.context.path.match(
+          /^[A-Za-z][A-Za-z0-9_-]*:(.*)/
+        );
+        const filepath = driveMatch
+          ? driveMatch[1]
+          : widget.context.path;
         commands.execute(CommandIDs.openChat, {
           filepath,
           inSidePanel: true
