@@ -215,6 +215,11 @@ const docFactories: JupyterFrontEndPlugin<IChatFactory> = {
      */
     const widgetConfig = new WidgetConfig({});
 
+    let _resolveSettingsReady: () => void = () => undefined;
+    const settingsReady = new Promise<void>(resolve => {
+      _resolveSettingsReady = resolve;
+    });
+
     /**
      * Load the settings for the chat widgets.
      */
@@ -305,6 +310,7 @@ const docFactories: JupyterFrontEndPlugin<IChatFactory> = {
         .then(([, setting]) => {
           // Read the settings
           loadSetting(setting);
+          _resolveSettingsReady();
 
           // Listen for the plugin setting changes
           setting.changed.connect(loadSetting);
@@ -314,6 +320,8 @@ const docFactories: JupyterFrontEndPlugin<IChatFactory> = {
             `Something went wrong when reading the settings.\n${reason}`
           );
         });
+    } else {
+      _resolveSettingsReady();
     }
 
     // Namespace for the tracker
@@ -406,7 +414,7 @@ const docFactories: JupyterFrontEndPlugin<IChatFactory> = {
       });
     }
 
-    return { widgetConfig, tracker };
+    return { widgetConfig, tracker, settingsReady };
   }
 };
 
@@ -862,6 +870,7 @@ const chatPanel: JupyterFrontEndPlugin<MultiChatPanel> = {
       rmRegistry,
       themeManager,
       getChatNames,
+      settingsReady: factory.settingsReady,
       createModel: async (path?: string) => {
         return createChatModel(
           app,

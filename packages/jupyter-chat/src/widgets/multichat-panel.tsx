@@ -73,6 +73,7 @@ export class MultiChatPanel extends SidePanel {
     this._openInMain = options.openInMain;
     this._renameChat = options.renameChat;
     this._deleteChat = options.deleteChat;
+    this._settingsReady = options.settingsReady ?? Promise.resolve();
 
     if (this._createModel) {
       // Add chat button calls the createChat callback
@@ -115,6 +116,11 @@ export class MultiChatPanel extends SidePanel {
   }
 
   protected onAfterShow(): void {
+    if (!this._createModel) return;
+    this._settingsReady.then(() => this._onAfterShowReady()).catch(console.error);
+  }
+
+  private _onAfterShowReady(): void {
     if (!this._createModel) return;
 
     // If sections are already open, expand the lowest (last) one
@@ -334,6 +340,7 @@ export class MultiChatPanel extends SidePanel {
   private _welcomeMessage?: string;
   private _updateChatListDebouncer: Debouncer;
 
+  private _settingsReady: Promise<void>;
   private _createModel?: (
     name?: string
   ) => Promise<MultiChatPanel.IAddChatArgs>;
@@ -372,6 +379,13 @@ export namespace MultiChatPanel {
      * @returns an object with display name as key and the "full" name as value.
      */
     getChatNames?: () => Promise<{ [name: string]: string }>;
+    /**
+     * A promise that resolves once settings have been loaded.
+     * The panel defers its auto-open logic until this resolves so that
+     * config values from overrides.json (e.g. defaultDirectory) are
+     * available before the first directory listing or chat creation.
+     */
+    settingsReady?: Promise<void>;
     /**
      * An optional callback to open the chat in the main area.
      *

@@ -59,6 +59,12 @@ export interface IChatFactory {
    * The chat panel tracker.
    */
   tracker: WidgetTracker<LabChatPanel | ChatWidget>;
+  /**
+   * A promise that resolves once the settings have been loaded.
+   * Consumers should wait on this before reading config values that
+   * may be supplied by overrides.json (e.g. defaultDirectory).
+   */
+  settingsReady: Promise<void>;
 }
 
 /**
