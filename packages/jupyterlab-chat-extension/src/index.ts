@@ -215,6 +215,11 @@ const docFactories: JupyterFrontEndPlugin<IChatFactory> = {
      */
     const widgetConfig = new WidgetConfig({});
 
+    let _resolveSettingsReady: () => void = () => undefined;
+    const settingsReady = new Promise<void>(resolve => {
+      _resolveSettingsReady = resolve;
+    });
+
     /**
      * Load the settings for the chat widgets.
      */
@@ -305,6 +310,7 @@ const docFactories: JupyterFrontEndPlugin<IChatFactory> = {
         .then(([, setting]) => {
           // Read the settings
           loadSetting(setting);
+          _resolveSettingsReady();
 
           // Listen for the plugin setting changes
           setting.changed.connect(loadSetting);
@@ -314,6 +320,8 @@ const docFactories: JupyterFrontEndPlugin<IChatFactory> = {
             `Something went wrong when reading the settings.\n${reason}`
           );
         });
+    } else {
+      _resolveSettingsReady();
     }
 
     // Namespace for the tracker
@@ -406,7 +414,7 @@ const docFactories: JupyterFrontEndPlugin<IChatFactory> = {
       });
     }
 
-    return { widgetConfig, tracker };
+    return { widgetConfig, tracker, settingsReady };
   }
 };
 
@@ -862,6 +870,7 @@ const chatPanel: JupyterFrontEndPlugin<MultiChatPanel> = {
       rmRegistry,
       themeManager,
       getChatNames,
+      settingsReady: factory.settingsReady,
       createModel: async (path?: string) => {
         return createChatModel(
           app,
@@ -969,8 +978,16 @@ const chatPanel: JupyterFrontEndPlugin<MultiChatPanel> = {
           );
           return;
         }
-        // Remove potential drive prefix
-        const filepath = widget.context.path.split(':').pop();
+        // Strip a drive prefix if present (e.g. "RTC:path/file.chat").
+        // Drive names are identifiers: a letter followed by word chars/hyphens.
+        // This avoids breaking filenames that contain colons
+        // (e.g. "Chat Thu May 12 2026, 14:30:22.chat").
+        const driveMatch = widget.context.path.match(
+          /^[A-Za-z][A-Za-z0-9_-]*:(.*)/
+        );
+        const filepath = driveMatch
+          ? driveMatch[1]
+          : widget.context.path;
         commands.execute(CommandIDs.openChat, {
           filepath,
           inSidePanel: true
